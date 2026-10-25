@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>خدمات ربات روبیکا</title>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #2A5C9A;
+      --primary-light: #3B7DD8;
+      --sent: #E3F2FD;
+      --received: #FFFFFF;
+      --bg: #F2F5F9;
+      --surface: #FFFFFF;
+      --text: #1A1A1A;
+      --text-secondary: #6B7280;
+      --border: #E5E7EB;
+      --danger: #EF4444;
+      --success: #10B981;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --ad-bg: linear-gradient(135deg, #FF6B6B, #FECA57);
+    }
+    body.dark {
+      --sent: #1E3A5F;
+      --received: #1E1E2E;
+      --bg: #0F172A;
+      --surface: #1E293B;
+      --text: #F1F5F9;
+      --text-secondary: #94A3B8;
+      --border: #334155;
+    }
+    body {
+      font-family: 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow: hidden;
+    }
+    #splashScreen {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: var(--primary);
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      z-index: 9999; transition: opacity 0.5s, visibility 0.5s;
+    }
+    #splashScreen.hide { opacity: 0; visibility: hidden; }
+    #splashScreen img { width: 100px; height: 100px; background: white; border-radius: 24px; padding: 12px; }
+    #splashScreen h1 { color: white; margin-top: 16px; font-size: 22px; }
+    #splashScreen p { color: rgba(255,255,255,0.8); margin-top: 8px; font-size: 14px; }
+
+    #appContainer { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .page { display: none; flex: 1; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg); }
+    .page.active { display: flex; }
+
+    .header { background: var(--surface); padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; box-shadow: 0 1px 4px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 10; }
+    .header h2 { font-size: 18px; flex: 1; text-align: center; color: var(--primary); }
+    .back-btn { cursor: pointer; font-size: 22px; padding: 4px 8px; border-radius: 8px; color: var(--primary); }
+
+    .btn { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 30px; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: var(--shadow); font-family: 'Vazirmatn', sans-serif; }
+    .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+    .btn-success { background: var(--success); }
+
+    .list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .robot-card, .chat-item {
+      background: var(--surface); border-radius: 16px; padding: 14px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: var(--shadow); cursor: pointer; transition: 0.2s; border: 1px solid var(--border);
+    }
+    .robot-card:active, .chat-item:active { transform: scale(0.98); }
+    .avatar { width: 48px; height: 48px; background: var(--primary-light); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; flex-shrink: 0; }
+    .info { flex: 1; min-width: 0; }
+    .info .title { font-weight: 600; font-size: 16px; }
+    .info .subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .actions { display: flex; gap: 8px; }
+    .icon-btn { background: none; border: none; font-size: 18px; padding: 8px; cursor: pointer; border-radius: 8px; color: var(--text-secondary); }
+
+    .stats-row { display: flex; gap: 8px; padding: 12px; flex-wrap: wrap; }
+    .stat-card {
+      flex: 1; min-width: 80px; background: var(--surface); border-radius: 16px; padding: 14px 10px;
+      text-align: center; box-shadow: var(--shadow);
+    }
+    .stat-card .number { font-size: 24px; font-weight: bold; color: var(--primary); }
+    .stat-card .label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+    .guide-section { background: var(--surface); border-radius: 16px; padding: 14px; margin: 6px 12px; box-shadow: var(--shadow); }
+    .guide-section h3 { color: var(--primary); margin-bottom: 6px; font-size: 16px; }
+    .guide-section p { font-size: 13px; line-height: 1.6; }
+
+    .sub-tabs { display: flex; gap: 8px; padding: 8px 12px; }
+    .sub-tab {
+      flex: 1; padding: 8px; text-align: center; border-radius: 20px;
+      background: var(--surface); cursor: pointer; font-size: 14px; font-weight: 500;
+      border: 1px solid var(--border); transition: 0.2s;
+    }
+    .sub-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .messages-container { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 4px; background: var(--bg); }
+    .message { max-width: 80%; padding: 10px 14px; border-radius: 18px; line-height: 1.5; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); word-break: break-word; }
+    .message.sent { background: var(--sent); margin-left: auto; margin-right: 0; border-bottom-right-radius: 6px; }
+    .message.received { background: var(--received); margin-right: auto; margin-left: 0; border-bottom-left-radius: 6px; }
+    .message .time { font-size: 10px; color: var(--text-secondary); margin-top: 4px; text-align: left; }
+
+    .input-bar { background: var(--surface); padding: 10px; display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .input-bar input { flex: 1; padding: 12px 16px; border-radius: 24px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; outline: none; font-family: 'Vazirmatn', sans-serif; }
+    .circle-btn { width: 42px; height: 42px; background: var(--primary); color: white; border: none; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(4px); }
+    .modal.show { display: flex; }
+    .modal-content { background: var(--surface); border-radius: 20px; padding: 20px; width: 90%; max-width: 380px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+    .modal input, .modal textarea { width: 100%; padding: 12px; margin: 6px 0; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text); font-family: 'Vazirmatn', sans-serif; }
+    .progress-bar { width: 100%; height: 8px; background: var(--border); border-radius: 4px; margin: 8px 0; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+
+    .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .toggle { width: 48px; height: 26px; background: #ccc; border-radius: 13px; position: relative; cursor: pointer; transition: 0.3s; }
+    .toggle.active { background: var(--primary); }
+    .toggle::after { content: ''; position: absolute; width: 22px; height: 22px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: 0.3s; }
+    .toggle.active::after { left: 24px; }
+
+    .bottom-nav { display: flex; background: var(--surface); box-shadow: 0 -2px 10px rgba(0,0,0,0.1); padding: 6px 0; flex-shrink: 0; }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; color: var(--text-secondary); font-size: 11px; transition: 0.2s; padding: 4px 0; }
+    .nav-item.active { color: var(--primary); font-weight: 600; }
+    .nav-item .icon { font-size: 20px; }
+
+    #adBanner {
+      background: var(--ad-bg);
+      border-radius: 16px;
+      margin: 8px 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: transform 0.2s;
+    }
+    #adBanner:active { transform: scale(0.97); }
+    #adBanner img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid white; flex-shrink: 0; display: none; }
+    .ad-text-block { flex: 1; min-width: 0; }
+    #adBanner .ad-title { font-size: 15px; font-weight: bold; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    #adBanner .ad-desc { font-size: 12px; color: rgba(255,255,255,0.9); margin-top: 2px; }
+    #adBanner .ad-cta { background: rgba(255,255,255,0.3); border-radius: 16px; padding: 5px 14px; font-size: 13px; color: white; font-weight: 600; backdrop-filter: blur(4px); }
+
+    .extra-banner {
+      display: none;
+      margin: 12px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      cursor: pointer;
+    }
+    .extra-banner img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    #broadcastBtn { display: none; }
+  </style>
+</head>
+<body>
+
+  <div id="splashScreen">
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23ffffff'/%3E%3Cpath d='M30 50 L45 65 L70 35' stroke='%232A5C9A' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" alt="Logo">
+    <h1>خدمات ربات روبیکا</h1>
+    <p>مدیریت حرفه‌ای بات‌های روبیکا</p>
+  </div>
+
+  <div id="appContainer">
+    
+    <div id="homePage" class="page active">
+      <div class="header">
+        <h2>🏠 مدیریت ربات‌ها</h2>
+        <button class="icon-btn" onclick="switchTab('settingsPage')">⚙️</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="number" id="totalRobots">۰</div><div class="label">ربات</div></div>
+        <div class="stat-card"><div class="number" id="totalChats">۰</div><div class="label">چت فعال</div></div>
+        <div class="stat-card"><div class="number" id="totalMsgs">۰</div><div class="label">پیام</div></div>
+        <div class="stat-card"><div class="number" id="totalUsers">۰</div><div class="label">کاربر</div></div>
+      </div>
+      <div class="list" id="robotList"></div>
+      <div style="padding:0 12px 8px 12px; display:flex; flex-direction:column; gap:8px;">
+        <button class="btn" style="width:100%;" onclick="showAddRobotModal()">➕ افزودن ربات جدید</button>
+        <button id="broadcastBtn" class="btn btn-success" style="width:100%;" onclick="showBroadcastModal()">📢 ارسال پیام همگانی</button>
+      </div>
+      
+      <div id="homeExtraBanner" class="extra-banner" onclick="handleExtraBannerClick()">
+        <img id="homeExtraImg" src="" alt="">
+      </div>
+      <div id="adBanner" onclick="handleAdClick()" style="margin:0 12px 12px 12px;">
+        <img id="adImage" src="" alt="">
+        <div class="ad-text-block">
+          <div class="ad-title" id="adTitle">پیشنهاد ویژه</div>
+          <div class="ad-desc" id="adDesc">همین حالا کلیک کنید!</div>
+        </div>
+        <div class="ad-cta">مشاهده</div>
+      </div>
+    </div>
+
+    <div id="chatsPage" class="page">
+      <div class="header">
+        <h2>💬 لیست چت‌ها</h2>
+        <button class="icon-btn" onclick="showBroadcastModal()" title="ارسال پیام همگانی">📢</button>
+      </div>
+      <div class="list" id="chatList"></div>
+    </div>
+
+    <div id="guidePage" class="page">
+      <div class="header">
+        <span class="back-btn" onclick="switchTab('settingsPage')">←</span>
+        <h2>📘 راهنما</h2>
+      </div>
+      <div class="sub-tabs">
+        <div class="sub-tab active" id="subTabLearn" onclick="showGuideSub('learn')">🎓 آموزش</div>
+        <div class="sub-tab" id="subTabFaq" onclick="showGuideSub('faq')">❓ سوالات متداول</div>
+      </div>
+      <div class="list" id="guideContent"></div>
+    </div>
+
+    <div id="settingsPage" class="page">
+      <div class="header">
+        <span class="back-btn" onclick="switchTab('homePage')">←</span>
+        <h2>⚙️ تنظیمات</h2>
+      </div>
+      <div style="padding:16px;">
+        <div class="setting-row">
+          <span>🌙 حالت تاریک</span>
+          <div class="toggle" id="darkToggle" onclick="toggleDarkMode()"></div>
+        </div>
+        <div class="setting-row">
+          <span>📘 راهنما</span>
+          <button class="btn-outline" onclick="switchTab('guidePage')" style="padding:8px 16px;">مشاهده</button>
+        </div>
+        <div class="setting-row">
+          <span>📜 سیاست حریم خصوصی</span>
+          <button class="btn-outline" onclick="showPrivacy()" style="padding:8px 16px;">مشاهده</button>
+        </div>
+      </div>
+      
+      <div id="settingsExtraBanner" class="extra-banner" onclick="handleExtraBannerClick()">
+        <img id="settingsExtraImg" src="" alt="">
+      </div>
+    </div>
+
+    <div id="privacyPage" class="page" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:60; background:var(--bg);">
+      <div class="header">
+        <span class="back-btn" onclick="closePrivacy()">←</span>
+        <h2>📜 حریم خصوصی</h2>
+      </div>
+      <div style="padding:16px; line-height:2; text-align:justify;">
+        <h3 style="color:var(--primary); margin-bottom:12px;">سیاست حریم خصوصی</h3>
+        <p>این برنامه صرفاً جهت مدیریت ربات‌های روبیکا طراحی شده است.</p>
+        <p>توکن ربات‌ها فقط در حافظه محلی دستگاه ذخیره می‌شود و هرگز به سرور توسعه‌دهنده ارسال نمی‌گردد.</p>
+        <p>هیچ‌گونه اطلاعات شخصی کاربر یا محتوای چت‌ها نزد ما ذخیره نمی‌شود.</p>
+        <p>کاربر مسئول استفاده صحیح از ربات خود بوده و هرگونه سوءاستفاده بر عهده کاربر است.</p>
+        <p>این برنامه تابع قوانین جمهوری اسلامی ایران می‌باشد.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" data-tab="homePage" onclick="switchTab('homePage')">
+      <span class="icon">🏠</span><span>خانه</span>
+    </div>
+    <div class="nav-item" data-tab="chatsPage" onclick="switchTab('chatsPage')">
+      <span class="icon">💬</span><span>چت‌ها</span>
+    </div>
+    <div class="nav-item" data-tab="settingsPage" onclick="switchTab('settingsPage')">
+      <span class="icon">⚙️</span><span>تنظیمات</span>
+    </div>
+  </div>
+
+  <div id="chatOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:50; display:none; flex-direction:column;">
+    <div class="header">
+      <span class="back-btn" onclick="closeChat()">←</span>
+      <h2 id="chatTitle">چت</h2>
+    </div>
+    <div class="messages-container" id="messagesContainer"></div>
+    <div id="replyBar" style="display:none; background:var(--surface); padding:6px 12px; border-top:1px solid var(--border); align-items:center; gap:8px;">
+      <span>↩</span> <span id="replyText" style="flex:1; font-size:13px;"></span>
+      <button onclick="cancelReply()" style="background:none;border:none;color:var(--danger);">✕</button>
+    </div>
+    <div class="input-bar">
+      <button class="circle-btn" style="background:#64748B;" onclick="openInlineModal()">➕</button>
+      <input type="text" id="messageInput" placeholder="پیام..." onkeypress="if(event.key==='Enter')sendMessage()">
+      <button class="circle-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+  <div id="addRobotModal" class="modal">
+    <div class="modal-content">
+      <h3 style="color:var(--primary); margin-bottom:12px;">افزودن ربات</h3>
+      <input id="robotNameInput" placeholder="نام دلخواه (اختیاری)">
+      <input id="tokenInput" placeholder="توکن ربات" style="direction:ltr;">
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn" onclick="addRobot()" style="flex:1;">اتصال</button>
+        <button class="btn btn-outline" onclick="closeModal('addRobotModal')" style="flex:1;">بستن</button>
+      </div>
+      <p id="addError" style="color:red; margin-top:8px;"></p>
+    </div>
+  </div>
+
+  <div id="broadcastModal" class="modal">
+    <div class="modal-content">
+      <h3 style="color:var(--primary); margin-bottom:12px;">📢 ارسال پیام همگانی</h3>
+      <textarea id="broadcastText" rows="4" placeholder="متن پیام همگانی..."></textarea>
+      <div id="broadcastProgress" style="display:none;">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <p id="progressStatus" style="text-align:center; font-size:14px;"></p>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn" onclick="startBroadcast()" id="broadcastSendBtn">📤 ارسال به همه</button>
+        <button class="btn btn-outline" onclick="closeModal('broadcastModal')">بستن</button>
+      </div>
+      <p id="broadcastError" style="color:red; margin-top:8px;"></p>
+    </div>
+  </div>
+
+  <div id="inlineModal" class="modal">
+    <div class="modal-content">
+      <h3>📨 پیام با دکمه شیشه‌ای</h3>
+      <input id="inlineText" placeholder="متن پیام">
+      <div id="inlineButtons"><div style="display:flex;gap:4px;"><input placeholder="متن دکمه" class="btn-text" style="flex:1;"></div></div>
+      <button class="btn" onclick="addButtonRow()" style="margin:8px 0;">+ افزودن دکمه</button>
+      <div id="keypadPreview" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="sendInlineMessage()">📤 ارسال</button>
+        <button class="btn btn-outline" onclick="closeModal('inlineModal')">بازگشت</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="deleteConfirm" class="modal">
+    <div class="modal-content" style="text-align:center;">
+      <h4>🗑 حذف پیام؟</h4>
+      <div style="display:flex; gap:8px; justify-content:center; margin-top:16px;">
+        <button class="btn" onclick="confirmDeleteMsg()">بله</button>
+        <button class="btn btn-outline" onclick="closeModal('deleteConfirm')">خیر</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const AD_URL = "https://majdmam.ir/json/json_servers/mam.json";
+  const EXTRA_URL = "https://majdmam.ir/json/json_servers/bot.json";
+  const BROADCAST_AD_URL = "https://majdmam.ir/json/json_servers/hmgani.json";
+
+  let adData = { title:'', desc:'', image:'', link:'' };
+  let extraBannerData = { image: '', link: '' };
+  let broadcastAdData = { title:'', desc:'', link:'' };
+  let bots = [];
+  let activeBotIndex = 0;
+  let currentChatId = null;
+  let replyMsg = null;
+  let deleteTarget = null;
+  let updateTimers = {};
+  let dark = false;
+  let currentGuideSub = 'learn';
+  let isBroadcasting = false;
+
+  function sanitize(s) { return s ? String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
+  function getActiveBot() { return bots[activeBotIndex]; }
+  function getActiveChats() { return getActiveBot()?.chats || {}; }
+  function saveState() { localStorage.setItem('rbm_state', JSON.stringify({ bots, activeBotIndex, dark })); }
+  function loadState() {
+    try {
+      const d = JSON.parse(localStorage.getItem('rbm_state'));
+      if (d) { bots = d.bots || []; activeBotIndex = d.activeBotIndex || 0; dark = d.dark || false; }
+    } catch(e){}
+  }
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const navItem = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
+    if (navItem) navItem.classList.add('active');
+    if (tabId === 'homePage') { updateStats(); renderRobotList(); }
+    else if (tabId === 'chatsPage') renderChatList();
+    else if (tabId === 'guidePage') showGuideSub(currentGuideSub);
+    document.getElementById('chatOverlay').style.display = 'none';
+    currentChatId = null;
+  }
+
+  function showGuideSub(sub) {
+    currentGuideSub = sub;
+    document.getElementById('subTabLearn').classList.toggle('active', sub==='learn');
+    document.getElementById('subTabFaq').classList.toggle('active', sub==='faq');
+    const container = document.getElementById('guideContent');
+    if (sub === 'learn') {
+      container.innerHTML = `
+        <div class="guide-section"><h3>۱. ساخت ربات در روبیکا</h3><p>وارد BotFather شوید، دستور ساخت ربات جدید را اجرا کنید و پس از انتخاب نام، توکن ربات را دریافت نمایید.</p></div>
+        <div class="guide-section"><h3>۲. وارد کردن توکن در برنامه</h3><p>از دکمه «افزودن ربات جدید» استفاده کرده و توکن را در فیلد مربوطه وارد کنید.</p></div>
+        <div class="guide-section"><h3>۳. مدیریت چند ربات</h3><p>می‌توانید چندین ربات را همزمان اضافه کرده و با دکمه 🔄 بین آن‌ها جابجا شوید.</p></div>
+        <div class="guide-section"><h3>۴. مشاهده چت‌ها</h3><p>با کلیک روی نام ربات وارد لیست چت‌ها شوید و هر چت را باز کنید.</p></div>
+        <div class="guide-section"><h3>۵. ارسال پیام متنی</h3><p>در صفحه چت، متن خود را تایپ کرده و دکمه ارسال را بزنید.</p></div>
+        <div class="guide-section"><h3>۶. ارسال دکمه شیشه‌ای</h3><p>با کلیک روی دکمه ➕ می‌توانید پیام‌های دارای Inline Keyboard بسازید.</p></div>
+        <div class="guide-section"><h3>۷. افزودن دکمه به پیام</h3><p>در پنجره بازشده، متن دکمه‌ها را وارد کرده و با افزودن دکمه جدید، کیبورد خود را طراحی کنید.</p></div>
+        <div class="guide-section"><h3>۸. پاسخ به پیام (Reply)</h3><p>روی پیام دریافتی کلیک کنید تا وارد حالت پاسخ شوید، سپس پیام خود را بنویسید.</p></div>
+        <div class="guide-section"><h3>۹. حذف پیام ارسالی</h3><p>روی پیام خود کلیک کنید، سپس در پنجره تایید، حذف را بزنید.</p></div>
+        <div class="guide-section"><h3>۱۰. حالت تاریک</h3><p>از بخش تنظیمات می‌توانید حالت تاریک را فعال یا غیرفعال کنید.</p></div>
+        <div class="guide-section"><h3>۱۱. آمار ربات</h3><p>در صفحه اصلی، تعداد ربات‌ها، چت‌های فعال، پیام‌ها و کاربران نمایش داده می‌شود.</p></div>
+        <div class="guide-section"><h3>۱۲. امنیت توکن</h3><p>توکن ربات فقط در حافظه محلی دستگاه ذخیره می‌شود و به هیچ سروری ارسال نمی‌شود.</p></div>
+        <div class="guide-section"><h3>۱۳. حذف ربات</h3><p>با کلیک روی 🗑 کنار نام ربات می‌توانید آن را از لیست حذف کنید.</p></div>
+        <div class="guide-section"><h3>۱۴. پشتیبانی</h3><p>از طریق روبیکا به آیدی @MAM_500 پیام دهید.</p></div>
+        <div class="guide-section"><h3>۱۵. خطای توکن نامعتبر</h3><p>در صورت مشاهده خطای توکن، از صحت توکن وارد شده اطمینان حاصل کنید.</p></div>
+        <div class="guide-section"><h3>۱۶. بروزرسانی خودکار چت‌ها</h3><p>چت‌ها به‌صورت خودکار هر ۲ ثانیه بروزرسانی می‌شوند.</p></div>
+        <div class="guide-section"><h3>۱۷. محدودیت‌ها</h3><p>ارسال پیام‌های حجیم یا اسپم ممکن است با محدودیت سرور روبیکا مواجه شود.</p></div>
+        <div class="guide-section"><h3>۱۸. ذخیره‌سازی</h3><p>تمام اطلاعات در Local Storage مرورگر ذخیره می‌شود و با حذف برنامه پاک می‌شود.</p></div>
+        <div class="guide-section"><h3>۱۹. ارسال پیام همگانی</h3><p>با کلیک روی دکمه 📢 در صفحه اصلی یا لیست چت‌ها می‌توانید به همه کاربران ربات پیام دهید.</p></div>
+        <div class="guide-section"><h3>۲۰. تنظیم تبلیغ در ارسال همگانی</h3><p>تبلیغی که همراه پیام همگانی ارسال می‌شود از فایل hmgani.json در سرور شما خوانده می‌شود.</p></div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div class="guide-section"><h3>چرا ربات پاسخ نمی‌دهد؟</h3><p>توکن ربات را بررسی کرده و اطمینان حاصل کنید که ربات در روبیکا فعال است.</p></div>
+        <div class="guide-section"><h3>آیا توکن من ذخیره می‌شود؟</h3><p>خیر، توکن فقط در دستگاه شما و در حافظه مرورگر ذخیره می‌شود.</p></div>
+        <div class="guide-section"><h3>چند ربات می‌توانم اضافه کنم؟</h3><p>تعداد ربات‌ها محدودیتی ندارد.</p></div>
+        <div class="guide-section"><h3>آیا پیام‌های من دیده می‌شود؟</h3><p>خیر، محتوای چت‌ها فقط در دستگاه شما قابل مشاهده است.</p></div>
+        <div class="guide-section"><h3>چگونه ربات را حذف کنم؟</h3><p>در صفحه اصلی، روی آیکون 🗑 کنار ربات کلیک کنید.</p></div>
+        <div class="guide-section"><h3>آیا این برنامه رسمی است؟</h3><p>خیر، این برنامه توسط توسعه‌دهنده شخص ثالث ساخته شده است.</p></div>
+        <div class="guide-section"><h3>پشتیبانی از کجا بگیرم؟</h3><p>از طریق روبیکا به آیدی @MAM_500 پیام دهید.</p></div>
+        <div class="guide-section"><h3>چرا پیام ارسال نمی‌شود؟</h3><p>اتصال اینترنت خود را بررسی کرده و از معتبر بودن توکن مطمئن شوید.</p></div>
+        <div class="guide-section"><h3>حالت تاریک کجاست؟</h3><p>از بخش تنظیمات می‌توانید حالت تاریک را فعال کنید.</p></div>
+        <div class="guide-section"><h3>آیا برنامه هزینه دارد؟</h3><p>خیر، برنامه کاملاً رایگان است و استفاده از آن هیچ هزینه‌ای ندارد.</p></div>
+        <div class="guide-section"><h3>چگونه دکمه شیشه‌ای بسازم؟</h3><p>در صفحه چت روی دکمه ➕ کلیک کنید و متن دکمه‌ها را وارد نمایید.</p></div>
+        <div class="guide-section"><h3>آیا می‌توانم پیام زمان‌بندی شده بفرستم؟</h3><p>این قابلیت در نسخه فعلی موجود نیست.</p></div>
+        <div class="guide-section"><h3>اطلاعات من کجا ذخیره می‌شود؟</h3><p>در Local Storage مرورگر دستگاه شما.</p></div>
+        <div class="guide-section"><h3>چرا لیست چت‌ها خالی است؟</h3><p>ربات هنوز پیامی دریافت نکرده است. یک پیام به ربات خود ارسال کنید.</p></div>
+        <div class="guide-section"><h3>ارسال پیام همگانی چگونه است؟</h3><p>از دکمه 📢 استفاده کنید. پیام به تمام چت‌های فعال ارسال می‌شود.</p></div>
+      `;
+    }
+  }
+
+  function closeChat() {
+    document.getElementById('chatOverlay').style.display = 'none';
+    currentChatId = null;
+    switchTab('homePage');
+  }
+
+  function showPrivacy() {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('privacyPage').classList.add('active');
+  }
+
+  function closePrivacy() {
+    document.getElementById('privacyPage').classList.remove('active');
+    switchTab('homePage');
+  }
+
+  function applyTheme() {
+    document.body.classList.toggle('dark', dark);
+    const toggle = document.getElementById('darkToggle');
+    if (toggle) toggle.classList.toggle('active', dark);
+  }
+
+  function updateStats() {
+    document.getElementById('totalRobots').textContent = bots.length;
+    let totalChats = 0, totalMsgs = 0, totalUsers = new Set();
+    bots.forEach(b => {
+      const chats = b.chats || {};
+      totalChats += Object.keys(chats).length;
+      Object.values(chats).forEach(c => {
+        totalMsgs += (c.messages||[]).length;
+        c.messages?.forEach(m => { if (m.type==='received') totalUsers.add(m.sender_id); });
+      });
+    });
+    document.getElementById('totalChats').textContent = totalChats;
+    document.getElementById('totalMsgs').textContent = totalMsgs;
+    document.getElementById('totalUsers').textContent = totalUsers.size;
+    const btn = document.getElementById('broadcastBtn');
+    if (btn) btn.style.display = bots.length > 0 ? '' : 'none';
+  }
+
+  async function validateBot(token) {
+    try {
+      const r = await fetch(`https://botapi.rubika.ir/v3/${token}/getMe`, {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+      const d = await r.json();
+      return d?.data?.bot || null;
+    } catch(e) { return null; }
+  }
+  async function addRobot() {
+    const token = document.getElementById('tokenInput').value.trim();
+    const name = document.getElementById('robotNameInput').value.trim();
+    const err = document.getElementById('addError');
+    if (!token) { err.textContent='توکن الزامی است'; return; }
+    err.textContent = 'در حال بررسی...';
+    const botInfo = await validateBot(token);
+    if (!botInfo) { err.textContent='توکن نامعتبر'; return; }
+    if (bots.find(b => b.token === token)) { err.textContent = 'این ربات قبلاً اضافه شده'; return; }
+    bots.push({ token, name: name || botInfo.first_name || 'بات', guid: botInfo.bot_id || '', chats: {} });
+    activeBotIndex = bots.length - 1;
+    saveState();
+    closeModal('addRobotModal');
+    document.getElementById('tokenInput').value = '';
+    document.getElementById('robotNameInput').value = '';
+    updateStats();
+    renderRobotList();
+    startUpdatesForActive();
+  }
+  function deleteRobot(index) {
+    if (bots.length <= 1) { bots = []; activeBotIndex = 0; }
+    else { bots.splice(index, 1); if (activeBotIndex >= bots.length) activeBotIndex = 0; }
+    stopAllUpdates();
+    saveState();
+    updateStats();
+    renderRobotList();
+    if (bots.length > 0) startUpdatesForActive();
+  }
+  function switchRobot(index) {
+    if (index === activeBotIndex) return;
+    stopUpdatesForIndex(activeBotIndex);
+    activeBotIndex = index;
+    saveState();
+    updateStats();
+    renderRobotList();
+    startUpdatesForActive();
+  }
+  function renderRobotList() {
+    const list = document.getElementById('robotList');
+    if (!bots.length) { list.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-secondary);">هیچ رباتی اضافه نشده</div>'; return; }
+    list.innerHTML = bots.map((b, i) => `
+      <div class="robot-card">
+        <div class="avatar" onclick="openChatsForRobot(${i})">${(b.name||'?')[0]}</div>
+        <div class="info" onclick="openChatsForRobot(${i})">
+          <div class="title">${sanitize(b.name)} ${i===activeBotIndex ? '✅' : ''}</div>
+          <div class="subtitle">${Object.keys(b.chats||{}).length} چت فعال</div>
+        </div>
+        <div class="actions">
+          <button class="icon-btn" onclick="event.stopPropagation(); switchRobot(${i})">🔄</button>
+          <button class="icon-btn" onclick="event.stopPropagation(); deleteRobot(${i})">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  function openChatsForRobot(index) {
+    if (index !== activeBotIndex) {
+      stopUpdatesForIndex(activeBotIndex);
+      activeBotIndex = index;
+      saveState();
+      startUpdatesForActive();
+    }
+    switchTab('chatsPage');
+    renderChatList();
+  }
+
+  function renderChatList() {
+    const chats = getActiveChats();
+    const container = document.getElementById('chatList');
+    const chatIds = Object.keys(chats);
+    if (!chatIds.length) { container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-secondary);">چتی یافت نشد</div>'; return; }
+    container.innerHTML = chatIds.map(id => {
+      const c = chats[id];
+      const lastMsg = c.messages.length ? c.messages[c.messages.length-1].text : '';
+      return `<div class="chat-item" onclick="openChat('${id}')">
+        <div class="avatar">${(c.name||'?')[0]}</div>
+        <div class="info">
+          <div class="title">${sanitize(c.name)}</div>
+          <div class="subtitle">${sanitize(lastMsg.slice(0,30)) || 'بدون پیام'}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  function openChat(chatId) {
+    currentChatId = chatId;
+    const chat = getActiveChats()[chatId];
+    document.getElementById('chatTitle').textContent = chat?.name || 'ناشناس';
+    document.getElementById('chatOverlay').style.display = 'flex';
+    renderMessages();
+  }
+  function renderMessages() {
+    if (!currentChatId) return;
+    const chat = getActiveChats()[currentChatId];
+    if (!chat) return;
+    const msgs = chat.messages.slice(-50);
+    const container = document.getElementById('messagesContainer');
+    container.innerHTML = msgs.map(m => {
+      const isSent = m.type === 'sent';
+      return `<div class="message ${isSent?'sent':'received'}" onclick="messageAction('${m.id}')">
+        <div>${sanitize(m.text)}</div>
+        <div class="time">${new Date(m.time*1000).toLocaleTimeString('fa-IR')} ${isSent?'✓':''}</div>
+      </div>`;
+    }).join('');
+    container.scrollTop = container.scrollHeight;
+  }
+  function messageAction(msgId) {
+    const chat = getActiveChats()[currentChatId];
+    if (!chat) return;
+    const msg = chat.messages.find(m => m.id === msgId);
+    if (!msg) return;
+    if (msg.type === 'sent') {
+      deleteTarget = { chatId: currentChatId, msgId: msg.originalId };
+      document.getElementById('deleteConfirm').classList.add('show');
+    } else {
+      replyMsg = msg;
+      document.getElementById('replyText').textContent = msg.text.slice(0,40);
+      document.getElementById('replyBar').style.display = 'flex';
+      document.getElementById('messageInput').focus();
+    }
+  }
+  function cancelReply() { replyMsg = null; document.getElementById('replyBar').style.display = 'none'; }
+
+  async function sendMessage() {
+    const text = document.getElementById('messageInput').value.trim();
+    if (!text || !currentChatId) return;
+    const bot = getActiveBot();
+    if (!bot) return;
+    const body = { chat_id: currentChatId, text };
+    if (replyMsg) body.reply_to_message_id = replyMsg.originalId;
+    try {
+      const res = await apiCall(bot.token, 'sendMessage', body);
+      if (res.message_id) {
+        const chat = getActiveChats()[currentChatId];
+        chat.messages.push({ id: 's_'+Date.now(), originalId: res.message_id, type: 'sent', text, time: Math.floor(Date.now()/1000) });
+        saveState();
+        renderMessages();
+        document.getElementById('messageInput').value = '';
+        cancelReply();
+      }
+    } catch(e) { alert('خطا در ارسال'); }
+  }
+
+  async function confirmDeleteMsg() {
+    if (!deleteTarget || !currentChatId) return;
+    const bot = getActiveBot();
+    try {
+      await apiCall(bot.token, 'deleteMessage', { chat_id: deleteTarget.chatId, message_id: deleteTarget.msgId });
+      const chat = getActiveChats()[deleteTarget.chatId];
+      chat.messages = chat.messages.filter(m => m.originalId !== deleteTarget.msgId);
+      saveState();
+      renderMessages();
+    } catch(e) { alert('خطا در حذف'); }
+    closeModal('deleteConfirm');
+    deleteTarget = null;
+  }
+
+  async function apiCall(token, method, body={}) {
+    const r = await fetch(`https://botapi.rubika.ir/v3/${token}/${method}`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    return d.data || {};
+  }
+
+  function startUpdatesForActive() {
+    const bot = getActiveBot();
+    if (!bot || updateTimers[activeBotIndex]) return;
+    updateTimers[activeBotIndex] = true;
+    loopUpdates(activeBotIndex);
+  }
+  function stopUpdatesForIndex(index) { updateTimers[index] = false; }
+  function stopAllUpdates() { Object.keys(updateTimers).forEach(k => updateTimers[k] = false); }
+  async function loopUpdates(botIndex) {
+    const bot = bots[botIndex];
+    if (!bot) return;
+    let lastId = bot._lastUpdateId || null;
+    while (updateTimers[botIndex]) {
+      try {
+        const body = { limit: 10 };
+        if (lastId) body.offset_id = lastId;
+        const res = await apiCall(bot.token, 'getUpdates', body);
+        if (res.next_offset_id) lastId = res.next_offset_id;
+        bot._lastUpdateId = lastId;
+        for (const u of res.updates||[]) {
+          const msg = u.new_message || u.updated_message;
+          if (!msg) continue;
+          const chatId = u.chat_id;
+          if (!bot.chats[chatId]) {
+            try {
+              const info = await apiCall(bot.token, 'getChat', {chat_id: chatId});
+              const c = info.chat || {};
+              let name = c.first_name||''; if(c.last_name) name += ' '+c.last_name;
+              bot.chats[chatId] = { name: name.trim()||c.title||'کاربر', messages:[] };
+            } catch(e) { bot.chats[chatId] = { name: 'کاربر', messages:[] }; }
+          }
+          const chat = bot.chats[chatId];
+          if (chat.messages.some(m => m.originalId === msg.message_id)) continue;
+          chat.messages.push({
+            id: 'm_'+msg.message_id, originalId: msg.message_id,
+            type: msg.sender_id === bot.guid ? 'sent' : 'received',
+            text: msg.text || '', time: msg.time || Math.floor(Date.now()/1000),
+            sender_id: msg.sender_id
+          });
+        }
+        saveState();
+        if (document.getElementById('chatsPage').classList.contains('active')) renderChatList();
+        if (currentChatId && document.getElementById('chatOverlay').style.display === 'flex') renderMessages();
+        if (document.getElementById('homePage').classList.contains('active')) updateStats();
+      } catch(e) {}
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+
+  async function fetchAd() {
+    adData = { title:'', desc:'', image:'', link:'' };
+    try {
+      const r = await fetch(AD_URL + '?t=' + Date.now(), {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (r.ok) {
+        const data = await r.json();
+        adData.title = data.title || data.text || '';
+        adData.desc = data.desc || data.description || '';
+        adData.image = data.image || '';
+        adData.link = data.link || '';
+        updateBanner();
+      }
+    } catch(e) {}
+  }
+  function updateBanner() {
+    document.getElementById('adTitle').textContent = adData.title || 'پیشنهاد ویژه';
+    document.getElementById('adDesc').textContent = adData.desc || 'همین حالا کلیک کنید';
+    const img = document.getElementById('adImage');
+    if (adData.image) { img.src = adData.image; img.style.display = 'block'; }
+    else img.style.display = 'none';
+  }
+  function handleAdClick() { if (adData.link) window.open(adData.link, '_blank'); }
+
+  async function fetchExtraBanner() {
+    extraBannerData = { image: '', link: '' };
+    try {
+      const r = await fetch(EXTRA_URL + '?t=' + Date.now(), {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (r.ok) {
+        const data = await r.json();
+        extraBannerData.image = data.image || '';
+        extraBannerData.link = data.link || '';
+        updateExtraBanners();
+      }
+    } catch(e) {}
+  }
+  function updateExtraBanners() {
+    const img1 = document.getElementById('homeExtraImg');
+    const img2 = document.getElementById('settingsExtraImg');
+    if (extraBannerData.image) {
+      img1.src = extraBannerData.image;
+      img2.src = extraBannerData.image;
+    }
+    const display = extraBannerData.image ? 'block' : 'none';
+    document.getElementById('homeExtraBanner').style.display = display;
+    document.getElementById('settingsExtraBanner').style.display = display;
+  }
+  function handleExtraBannerClick() {
+    if (extraBannerData.link) window.open(extraBannerData.link, '_blank');
+  }
+
+  async function fetchBroadcastAd() {
+    broadcastAdData = { title:'', desc:'', link:'' };
+    try {
+      const r = await fetch(BROADCAST_AD_URL + '?t=' + Date.now(), {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (r.ok) {
+        const data = await r.json();
+        broadcastAdData.title = data.title || data.text || '';
+        broadcastAdData.desc = data.desc || data.description || '';
+        broadcastAdData.link = data.link || '';
+      }
+    } catch(e) {}
+  }
+
+  function showBroadcastModal() {
+    if (!getActiveBot()) { alert('ابتدا یک ربات فعال انتخاب کنید'); return; }
+    const chats = getActiveChats();
+    if (Object.keys(chats).length === 0) { alert('هیچ چتی برای ارسال همگانی وجود ندارد'); return; }
+    document.getElementById('broadcastText').value = '';
+    document.getElementById('broadcastError').textContent = '';
+    document.getElementById('broadcastProgress').style.display = 'none';
+    document.getElementById('broadcastSendBtn').style.display = 'inline-flex';
+    document.getElementById('broadcastModal').classList.add('show');
+  }
+
+  async function startBroadcast() {
+    if (isBroadcasting) return;
+    const text = document.getElementById('broadcastText').value.trim();
+    if (!text) { document.getElementById('broadcastError').textContent = 'متن پیام را وارد کنید'; return; }
+    const bot = getActiveBot();
+    if (!bot) return;
+    const chats = getActiveChats();
+    const chatIds = Object.keys(chats);
+    if (chatIds.length === 0) return;
+
+    isBroadcasting = true;
+    document.getElementById('broadcastSendBtn').style.display = 'none';
+    document.getElementById('broadcastProgress').style.display = 'block';
+    const fill = document.getElementById('progressFill');
+    const status = document.getElementById('progressStatus');
+    fill.style.width = '0%';
+    status.textContent = '0/' + chatIds.length;
+
+    await fetchBroadcastAd();
+
+    let successUser = 0, successAd = 0;
+    for (let i = 0; i < chatIds.length; i++) {
+      try {
+        await apiCall(bot.token, 'sendMessage', { chat_id: chatIds[i], text });
+        successUser++;
+      } catch(e) {}
+
+      const adText = [broadcastAdData.title, broadcastAdData.desc, broadcastAdData.link ? '🔗 ' + broadcastAdData.link : ''].filter(Boolean).join('\n');
+      if (adText.trim()) {
+        try {
+          await apiCall(bot.token, 'sendMessage', { chat_id: chatIds[i], text: adText });
+          successAd++;
+        } catch(e) {}
+      }
+
+      const percent = Math.round(((i+1) / chatIds.length) * 100);
+      fill.style.width = percent + '%';
+      status.textContent = (i+1) + '/' + chatIds.length + ' (کاربر: ' + successUser + ', ارسال: ' + successAd + ')';
+    }
+    status.textContent = 'پایان. کاربر: ' + successUser + '، ارسال: ' + successAd;
+    setTimeout(() => {
+      document.getElementById('broadcastModal').classList.remove('show');
+      document.getElementById('broadcastProgress').style.display = 'none';
+      document.getElementById('broadcastSendBtn').style.display = 'inline-flex';
+      isBroadcasting = false;
+    }, 3000);
+  }
+
+  function toggleDarkMode() { dark = !dark; saveState(); applyTheme(); }
+
+  function openInlineModal() { document.getElementById('inlineModal').classList.add('show'); updatePreview(); }
+  function addButtonRow() {
+    const div = document.createElement('div');
+    div.style.display = 'flex'; div.style.gap = '4px'; div.style.marginTop = '4px';
+    div.innerHTML = '<input placeholder="متن دکمه" class="btn-text" style="flex:1;"> <button onclick="this.parentElement.remove();updatePreview();" style="background:red;color:white;border:none;border-radius:4px;">✕</button>';
+    document.getElementById('inlineButtons').appendChild(div);
+  }
+  function updatePreview() {
+    const prev = document.getElementById('keypadPreview');
+    prev.innerHTML = '';
+    document.querySelectorAll('#inlineButtons .btn-text').forEach(inp => {
+      if (inp.value.trim()) prev.innerHTML += `<span style="background:var(--primary);color:white;padding:4px 10px;border-radius:12px;margin:2px;">${inp.value}</span>`;
+    });
+  }
+  document.getElementById('inlineButtons').addEventListener('input', updatePreview);
+  document.getElementById('inlineText').addEventListener('input', updatePreview);
+  function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+  async function sendInlineMessage() {
+    const text = document.getElementById('inlineText').value.trim();
+    const btns = [];
+    document.querySelectorAll('#inlineButtons .btn-text').forEach(inp => { if(inp.value.trim()) btns.push(inp.value); });
+    if (!text && !btns.length) return;
+    const bot = getActiveBot();
+    const body = { chat_id: currentChatId, text };
+    if (btns.length) body.inline_keypad = { rows: btns.map(b => ({ buttons: [{ id: b, type:'Simple', button_text:b }] })) };
+    if (replyMsg) body.reply_to_message_id = replyMsg.originalId;
+    try {
+      const res = await apiCall(bot.token, 'sendMessage', body);
+      if (res.message_id) {
+        const chat = getActiveChats()[currentChatId];
+        chat.messages.push({ id: 's_'+Date.now(), originalId: res.message_id, type: 'sent', text: text + (btns.length?' [دکمه‌ها: '+btns.join(', ')+']':''), time: Math.floor(Date.now()/1000) });
+        saveState(); renderMessages(); closeModal('inlineModal');
+        document.getElementById('inlineText').value = '';
+        document.getElementById('inlineButtons').innerHTML = '<div style="display:flex;gap:4px;"><input placeholder="متن دکمه" class="btn-text" style="flex:1;"></div>';
+        cancelReply();
+      }
+    } catch(e) { alert('خطا'); }
+  }
+
+  function showAddRobotModal() { document.getElementById('addRobotModal').classList.add('show'); }
+
+  window.onload = function() {
+    loadState();
+    applyTheme();
+    updateStats();
+    renderRobotList();
+    if (bots.length > 0) startUpdatesForActive();
+    switchTab('homePage');
+    fetchAd();
+    fetchExtraBanner();
+    setInterval(fetchAd, 60000);
+    setInterval(fetchExtraBanner, 120000);
+    setTimeout(() => document.getElementById('splashScreen').classList.add('hide'), 1500);
+    showGuideSub('learn');
+  };
+</script>
+</body>
+  </html>
